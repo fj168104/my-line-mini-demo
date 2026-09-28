@@ -27,7 +27,8 @@ RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 # 拷贝构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+# Cloud Run 注入 PORT=8080；本地 docker 默认 80（entrypoint 内兜底）
+EXPOSE 8080
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

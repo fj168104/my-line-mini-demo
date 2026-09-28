@@ -13,10 +13,14 @@ fi
 BACKEND_HOST=$(echo "$BACKEND_HOST" | sed 's:/*$::')
 export BACKEND_HOST
 
-echo "[entrypoint] 后端地址: $BACKEND_HOST"
+# 监听端口：本地 docker 默认 80；Cloud Run 会注入 PORT=8080
+export PORT="${PORT:-80}"
 
-# 只替换 BACKEND_HOST，保留 nginx 自带的 $host/$uri 等变量不被 envsubst 改写
-envsubst '${BACKEND_HOST}' \
+echo "[entrypoint] 后端地址: $BACKEND_HOST"
+echo "[entrypoint] 监听端口: $PORT"
+
+# 只替换 BACKEND_HOST / PORT，保留 nginx 自带的 $host/$uri 等变量不被 envsubst 改写
+envsubst '${BACKEND_HOST} ${PORT}' \
   < /etc/nginx/nginx.conf.template \
   > /etc/nginx/nginx.conf
 
