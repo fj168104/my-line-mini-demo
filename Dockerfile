@@ -10,7 +10,7 @@ RUN npm ci
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY public ./public
-RUN npm run build
+COPY dist ./dist
 
 # 在 root 环境下用 heredoc 创建 entrypoint 脚本（无 CRLF，无转义问题）
 RUN cat > /tmp/ep.sh <<'SCRIPT'
