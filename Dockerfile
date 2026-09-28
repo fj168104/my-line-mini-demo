@@ -12,7 +12,8 @@ RUN npm ci
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY public ./public
-RUN npm run build
+COPY dist ./dist
+# RUN npm run build
 
 # ===== 阶段 2：Nginx 运行 =====
 FROM nginx:stable-alpine
