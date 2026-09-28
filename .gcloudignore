@@ -1,0 +1,6 @@
+# Cloud Build 上传构建上下文时只忽略这些，确保 src 源码一定上传
+node_modules
+dist
+.git
+.gcloudignore
+*.log

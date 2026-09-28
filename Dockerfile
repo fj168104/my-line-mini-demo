@@ -8,8 +8,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# 拷贝源码并构建
-COPY . .
+# 拷贝源码并构建（显式列出，缺文件时会立即报 not found，便于定位上下文问题）
+COPY tsconfig.json vite.config.ts index.html ./
+COPY src ./src
+COPY public ./public
 RUN npm run build
 
 # ===== 阶段 2：Nginx 运行 =====
