@@ -8,17 +8,16 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# 拷贝源码并构建（显式列出，缺文件时会立即报 not found，便于定位上下文问题）
+# 拷贝源码并构建
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY public ./public
-COPY dist ./dist
-# RUN npm run build
+RUN npm run build
 
-# ===== 阶段 2：Nginx 运行 =====
-FROM nginx:stable-alpine
+# ===== 阶段 2：Nginx 运行（非 root，适配 Cloud Run） =====
+FROM nginxinc/nginx-unprivileged:stable-alpine
 
-# Nginx 配置模板（启动时用环境变量替换后端地址）
+# Nginx 配置模板（启动时用 sed 替换后端地址）
 COPY nginx.conf.template /etc/nginx/nginx.conf.template
 # 容器启动脚本
 COPY docker-entrypoint.sh /docker-entrypoint.sh
@@ -28,7 +27,7 @@ RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 # 拷贝构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Cloud Run 注入 PORT=8080；本地 docker 默认 80（entrypoint 内兜底）
+# Cloud Run 注入 PORT=8080
 EXPOSE 8080
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
