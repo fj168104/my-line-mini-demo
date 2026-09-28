@@ -24,7 +24,7 @@ COPY --chown=nginx:nginx nginx.conf.template /etc/nginx/nginx.conf.template
 
 # 拷贝 entrypoint 脚本到 /tmp（非 root 容器的可写目录），兼容 Windows CRLF 并赋可执行权限
 COPY --chown=nginx:nginx docker-entrypoint.sh /tmp/docker-entrypoint.sh
-RUN sed -i 's/\r$//' /tmp/docker-entrypoint.sh && chmod +x /tmp/docker-entrypoint.sh
+RUN tr -d '\r' < /tmp/docker-entrypoint.sh > /tmp/ep.tmp && mv /tmp/ep.tmp /tmp/docker-entrypoint.sh && chmod +x /tmp/docker-entrypoint.sh
 
 EXPOSE 8080
 
