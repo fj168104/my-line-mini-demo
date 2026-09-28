@@ -31,13 +31,13 @@ http {
         # 例：/api/login -> http://后端/login
         #     /api/uploads/x.png -> http://后端/uploads/x.png
         # 注意：location 尾斜杠 + proxy_pass 尾斜杠，才能正确去掉 /api 前缀
-        location /api/ {
-            proxy_pass ${BACKEND_HOST}/;
-            proxy_http_version 1.1;
-            proxy_set_header Host              $host;
-            proxy_set_header X-Real-IP         $remote_addr;
-            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
+        location /api {
+            proxy_pass ${BACKEND_HOST};
+ #           proxy_http_version 1.1;
+ #           proxy_set_header Host              $host;
+ #           proxy_set_header X-Real-IP         $remote_addr;
+ #           proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+ #           proxy_set_header X-Forwarded-Proto $scheme;
 
             # OCR 调用 Google Vision 较慢，超时设大一些
             proxy_connect_timeout 30s;
