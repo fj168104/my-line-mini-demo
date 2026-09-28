@@ -1,0 +1,52 @@
+worker_processes  auto;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    # OCR 图片上传，限制 20MB（后端限制 10MB，留余量）
+    client_max_body_size 20m;
+
+    server {
+        listen       80;
+        server_name  _;
+
+        root   /usr/share/nginx/html;
+        index  index.html;
+
+        # 静态资源长缓存
+        location /assets/ {
+            expires 7d;
+            add_header Cache-Control "public, immutable";
+        }
+
+        # /api/* 转发到后端，并去掉 /api 前缀
+        # 例：/api/login -> http://后端/login
+        #     /api/uploads/x.png -> http://后端/uploads/x.png
+        location /api/ {
+            proxy_pass ${BACKEND_HOST}/;
+            proxy_http_version 1.1;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # OCR 调用 Google Vision 较慢，超时设大一些
+            proxy_connect_timeout 30s;
+            proxy_read_timeout    120s;
+            proxy_send_timeout    120s;
+        }
+
+        # SPA 单页应用：找不到的路径回退到 index.html
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+}
