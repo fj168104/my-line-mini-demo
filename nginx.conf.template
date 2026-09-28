@@ -1,51 +1,71 @@
-worker_processes  auto;
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
 
 events {
-    worker_connections  1024;
+    worker_connections 1024;
 }
 
 http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+    sendfile on;
+    server_tokens off;
 
-    sendfile        on;
-    keepalive_timeout  65;
-
-    # OCR 图片上传，限制 20MB（后端限制 10MB，留余量）
-    client_max_body_size 20m;
+    # Writable paths for the unprivileged container user.
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
 
     server {
-        listen       ${PORT} default_server;
-        server_name  _;
+        listen 0.0.0.0:${PORT};
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+        client_max_body_size 20m;
 
-        root   /usr/share/nginx/html;
-        index  index.html;
-
-        # 静态资源长缓存
-        location /assets/ {
-            expires 7d;
-            add_header Cache-Control "public, immutable";
+        # Frontend-only health check
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            return 200 "saiflow-web ok\n";
         }
 
-        # /api/* 转发到后端，并去掉 /api 前缀
-        # 例：/api/login -> http://后端/login
-        #     /api/uploads/x.png -> http://后端/uploads/x.png
-        # 注意：location 尾斜杠 + proxy_pass 尾斜杠，才能正确去掉 /api 前缀
-        location /api {
+        # /api/* 转发到后端，去掉 /api 前缀
+        # /api/login  -> 后端 /login
+        # /api/uploads/x.png -> 后端 /uploads/x.png
+        location /api/ {
+            rewrite ^/api/(.*) /$1 break;
             proxy_pass ${BACKEND_HOST};
- #           proxy_http_version 1.1;
- #           proxy_set_header Host              $host;
- #           proxy_set_header X-Real-IP         $remote_addr;
- #           proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
- #           proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header Host ${BACKEND_HOST_NAME};
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-            # OCR 调用 Google Vision 较慢，超时设大一些
-            proxy_connect_timeout 30s;
-            proxy_read_timeout    120s;
-            proxy_send_timeout    120s;
+            proxy_connect_timeout 10s;
+            proxy_send_timeout 120s;
+            proxy_read_timeout 120s;
+            proxy_request_buffering off;
+            proxy_buffering off;
+            proxy_intercept_errors off;
         }
 
-        # SPA 单页应用：找不到的路径回退到 index.html
+        # Do not turn missing JavaScript/CSS files into index.html responses.
+        location ^~ /assets/ {
+            try_files $uri =404;
+            add_header Cache-Control "public, max-age=3600";
+        }
+
+        location = /index.html {
+            add_header Cache-Control "no-cache" always;
+        }
+
+        # Vue Router history-mode fallback.
         location / {
             try_files $uri $uri/ /index.html;
         }
