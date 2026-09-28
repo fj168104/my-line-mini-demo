@@ -34,11 +34,10 @@ http {
             return 200 "saiflow-web ok\n";
         }
 
-        # /api/* 转发到后端，去掉 /api 前缀
-        # /api/login  -> 后端 /login
-        # /api/uploads/x.png -> 后端 /uploads/x.png
+        # /api/* 转发到后端（后端路由本身已带 /api 前缀，直接透传，不再 rewrite）
+        # /api/login  -> 后端 /api/login
+        # /api/uploads/x.png -> 后端 /api/uploads/x.png
         location /api/ {
-            rewrite ^/api/(.*) /$1 break;
             proxy_pass ${BACKEND_HOST};
             proxy_http_version 1.1;
             proxy_set_header Connection "";
