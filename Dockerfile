@@ -14,18 +14,19 @@ COPY src ./src
 COPY public ./public
 RUN npm run build
 
+# 在 root 环境下处理 entrypoint 的 CRLF（nginx-unprivileged 阶段没权限 sed -i）
+COPY docker-entrypoint.sh /tmp/entrypoint.sh
+RUN sed -i 's/\r$//' /tmp/entrypoint.sh && chmod +x /tmp/entrypoint.sh
+
 # ===== 阶段 2：Nginx 运行（非 root，适配 Cloud Run） =====
 FROM nginxinc/nginx-unprivileged:stable-alpine
 
-# Nginx 配置模板（启动时用 sed 替换后端地址）
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
-# 容器启动脚本
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-# 兼容 Windows 下的 CRLF 换行，并赋可执行权限
-RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+# 配置模板和启动脚本（用 --chown 确保 nginx 用户可读）
+COPY --chown=nginx:nginx nginx.conf.template /etc/nginx/nginx.conf.template
+COPY --from=builder --chown=nginx:nginx /tmp/entrypoint.sh /docker-entrypoint.sh
 
 # 拷贝构建产物
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Cloud Run 注入 PORT=8080
 EXPOSE 8080
