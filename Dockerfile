@@ -4,31 +4,36 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# 先装依赖（利用层缓存）
 COPY package*.json ./
 RUN npm ci
 
-# 拷贝源码并构建
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY public ./public
 RUN npm run build
 
-# 在 root 环境下处理 entrypoint 的 CRLF（nginx-unprivileged 阶段没权限 sed -i）
-COPY docker-entrypoint.sh /tmp/entrypoint.sh
-RUN sed -i 's/\r$//' /tmp/entrypoint.sh && chmod +x /tmp/entrypoint.sh
-
 # ===== 阶段 2：Nginx 运行（非 root，适配 Cloud Run） =====
 FROM nginxinc/nginx-unprivileged:stable-alpine
-
-# 配置模板和启动脚本（用 --chown 确保 nginx 用户可读）
-COPY --chown=nginx:nginx nginx.conf.template /etc/nginx/nginx.conf.template
-COPY --from=builder --chown=nginx:nginx /tmp/entrypoint.sh /docker-entrypoint.sh
 
 # 拷贝构建产物
 COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
-# Cloud Run 注入 PORT=8080
+# 拷贝 nginx 配置模板
+COPY --chown=nginx:nginx nginx.conf.template /etc/nginx/nginx.conf.template
+
 EXPOSE 8080
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# 启动时用 sed 替换占位符，写到 /tmp（非 root 可写），再用 nginx -c 指定配置
+# BACKEND_HOST / PORT 由 Cloud Run 注入；本地 docker 可用 -e 传入
+CMD ["sh", "-c", "\
+  PORT=${PORT:-8080}; \
+  BH=${BACKEND_HOST:-http://localhost:5000}; \
+  BH=$(echo $BH | sed 's:/*$::'); \
+  BHN=$(echo $BH | sed 's|^https\\?://||; s|/[].*||'); \
+  echo \"[entrypoint] backend=$BH host=$BHN port=$PORT\"; \
+  sed -e \"s|\\${BACKEND_HOST}|$BH|g\" \
+      -e \"s|\\${BACKEND_HOST_NAME}|$BHN|g\" \
+      -e \"s|\\${PORT}|$PORT|g\" \
+      /etc/nginx/nginx.conf.template > /tmp/nginx.conf; \
+  exec nginx -c /tmp/nginx.conf -g 'daemon off;' \
+"]
