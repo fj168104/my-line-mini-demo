@@ -1,17 +1,25 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import LoginPage from './views/LoginPage.vue';
 import RegisterPage from './views/RegisterPage.vue';
 import UserPage from './views/UserPage.vue';
 import OcrPage from './views/OcrPage.vue';
+import TextinOcrPage from './views/TextinOcrPage.vue';
 import { getUserInfo, getToken } from './api';
 
-// 当前视图：登录页 / 注册页 / 用户信息页 / OCR 页
-type View = 'login' | 'register' | 'user' | 'ocr';
+// 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / TextIn 智能抽取页
+type View = 'login' | 'register' | 'user' | 'ocr' | 'textinOcr';
 const view = ref<View>('login');
 const checking = ref(true);
 // 注册成功后回到登录页的提示
 const loginNotice = ref('');
+
+// React 子应用通过 CustomEvent 广播 401：清理 token 并回到登录页
+const UNAUTHORIZED_EVENT = 'app:unauthorized';
+function onUnauthorized() {
+  // React 端 axios 拦截器已经清掉了 localStorage，这里只需切视图
+  view.value = 'login';
+}
 
 async function checkAuth() {
   checking.value = true;
@@ -58,13 +66,34 @@ function backFromOcr() {
   view.value = 'user';
 }
 
-onMounted(checkAuth);
+function goTextinOcr() {
+  view.value = 'textinOcr';
+}
+
+function backFromTextinOcr() {
+  view.value = 'user';
+}
+
+onMounted(() => {
+  checkAuth();
+  window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+});
 </script>
 
 <template>
   <div v-if="checking" class="boot">加载中…</div>
+  <TextinOcrPage v-else-if="view === 'textinOcr'" @back="backFromTextinOcr" />
   <OcrPage v-else-if="view === 'ocr'" @back="backFromOcr" />
-  <UserPage v-else-if="view === 'user'" @logged-out="onLoggedOut" @go-ocr="goOcr" />
+  <UserPage
+    v-else-if="view === 'user'"
+    @logged-out="onLoggedOut"
+    @go-ocr="goOcr"
+    @go-textin-ocr="goTextinOcr"
+  />
   <RegisterPage
     v-else-if="view === 'register'"
     @registered="onRegistered"

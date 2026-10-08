@@ -10,6 +10,7 @@ const loggingOut = ref(false);
 const emit = defineEmits<{
   (e: 'logged-out'): void;
   (e: 'go-ocr'): void;
+  (e: 'go-textin-ocr'): void;
 }>();
 
 async function loadUser() {
@@ -68,6 +69,9 @@ onMounted(loadUser);
       </ul>
 
       <button class="ocr-btn" @click="emit('go-ocr')">OCR 图片识别</button>
+      <button class="ocr-btn textin" @click="emit('go-textin-ocr')" style="margin-top: 12px">
+        TextIn 智能抽取
+      </button>
 
       <button class="logout-btn" :disabled="loggingOut" @click="handleLogout">
         {{ loggingOut ? '退出中…' : '退出登录' }}
