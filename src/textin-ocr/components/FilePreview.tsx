@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Empty, Image, Skeleton, Space, Tag, Typography } from 'antd'
 import * as pdfjsLib from 'pdfjs-dist'
+import { useI18n } from '../i18n'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Vite ?url 导入返回字符串
 import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -38,6 +39,7 @@ function isPdfType(ct: string, name: string): boolean {
 }
 
 export default function FilePreview({ file, fileUrl, filename }: Props) {
+  const { t } = useI18n()
   const [state, setState] = useState<RenderState>({ kind: 'loading' })
   const objectUrlRef = useRef<string | null>(null)
   const fetchedUrlRef = useRef<string | null>(null)
@@ -58,7 +60,7 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
           if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
           blob = await resp.blob()
         } else {
-          setState({ kind: 'unsupported', reason: '无可预览文件' })
+          setState({ kind: 'unsupported', reason: t('preview.noFile') })
           return
         }
 
@@ -121,13 +123,13 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
     )
   }
   if (state.kind === 'unsupported') {
-    return <Empty description={`无法预览：${state.reason}`} />
+    return <Empty description={t('preview.cannot', { reason: state.reason })} />
   }
   if (state.kind === 'image') {
     return (
       <Image
         src={state.src}
-        alt={filename ?? '预览'}
+        alt={filename ?? t('preview.alt')}
         style={{
           maxWidth: '100%',
           maxHeight: 320,
@@ -137,7 +139,7 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
           border: '1px solid #eee',
         }}
         preview={{
-          mask: '点击放大',
+          mask: t('preview.zoom'),
           src: state.src,
         }}
       />
@@ -147,11 +149,11 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
     return (
       <Space direction="vertical" size={4} style={{ width: '100%' }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          PDF 首页缩略图
+          {t('preview.pdfThumb')}
         </Typography.Text>
         <Image
           src={state.dataUrl}
-          alt={filename ?? 'PDF 预览'}
+          alt={filename ?? t('preview.pdfAlt')}
           style={{
             maxWidth: '100%',
             maxHeight: 320,
@@ -161,7 +163,7 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
             border: '1px solid #eee',
           }}
           preview={{
-            mask: '点击放大',
+            mask: t('preview.zoom'),
             src: state.dataUrl,
           }}
         />
@@ -174,7 +176,7 @@ export default function FilePreview({ file, fileUrl, filename }: Props) {
       <Tag color="blue">{state.contentType || 'unknown'}</Tag>
       <Typography.Text>{formatSize(state.size || 0)}</Typography.Text>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        （无缩略图）
+        {t('preview.noThumb')}
       </Typography.Text>
     </Space>
   )

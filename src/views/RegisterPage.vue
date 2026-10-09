@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { register } from '../api';
+import { useT } from '../i18nVue';
+import LangSwitch from '../components/LangSwitch.vue';
+
+const { t } = useT();
 
 const username = ref('');
 const email = ref('');
@@ -22,19 +26,19 @@ async function handleSubmit() {
   const u = username.value.trim();
   const m = email.value.trim();
   if (!u || !m || !password.value) {
-    errorMsg.value = '用户名、邮箱、密码均不能为空';
+    errorMsg.value = t('register.errRequired');
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) {
-    errorMsg.value = '请输入正确的邮箱格式';
+    errorMsg.value = t('register.errEmail');
     return;
   }
   if (password.value.length < 6) {
-    errorMsg.value = '密码长度至少 6 位';
+    errorMsg.value = t('register.errPwdLen');
     return;
   }
   if (password.value !== confirmPassword.value) {
-    errorMsg.value = '两次输入的密码不一致';
+    errorMsg.value = t('register.errPwdMatch');
     return;
   }
 
@@ -42,10 +46,10 @@ async function handleSubmit() {
   try {
     await register(u, m, password.value);
     // 注册成功：短暂提示后回到登录页
-    successMsg.value = '注册成功，正在跳转登录页…';
+    successMsg.value = t('register.success');
     setTimeout(() => emit('registered'), 800);
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : '注册失败';
+    errorMsg.value = err instanceof Error ? err.message : t('register.errFailed');
   } finally {
     loading.value = false;
   }
@@ -54,47 +58,48 @@ async function handleSubmit() {
 
 <template>
   <main class="page">
+    <LangSwitch />
     <div class="card">
-      <h1>用户注册</h1>
-      <p class="subtitle">创建 SaiFlow 账号</p>
+      <h1>{{ t('register.title') }}</h1>
+      <p class="subtitle">{{ t('register.subtitle') }}</p>
 
       <form @submit.prevent="handleSubmit">
         <label class="field">
-          <span>用户名</span>
+          <span>{{ t('register.username') }}</span>
           <input
             v-model="username"
             type="text"
-            placeholder="请输入用户名"
+            :placeholder="t('register.usernamePh')"
             autocomplete="username"
           />
         </label>
 
         <label class="field">
-          <span>邮箱</span>
+          <span>{{ t('register.email') }}</span>
           <input
             v-model="email"
             type="email"
-            placeholder="请输入邮箱"
+            :placeholder="t('register.emailPh')"
             autocomplete="email"
           />
         </label>
 
         <label class="field">
-          <span>密码</span>
+          <span>{{ t('register.password') }}</span>
           <input
             v-model="password"
             type="password"
-            placeholder="至少 6 位"
+            :placeholder="t('register.passwordPh')"
             autocomplete="new-password"
           />
         </label>
 
         <label class="field">
-          <span>确认密码</span>
+          <span>{{ t('register.confirm') }}</span>
           <input
             v-model="confirmPassword"
             type="password"
-            placeholder="再次输入密码"
+            :placeholder="t('register.confirmPh')"
             autocomplete="new-password"
           />
         </label>
@@ -103,13 +108,13 @@ async function handleSubmit() {
         <p v-if="successMsg" class="success">{{ successMsg }}</p>
 
         <button type="submit" :disabled="loading">
-          {{ loading ? '注册中…' : '注册' }}
+          {{ loading ? t('register.submitting') : t('register.submit') }}
         </button>
       </form>
 
       <p class="switch">
-        已有账号？
-        <a href="javascript:void(0)" @click="emit('go-login')">返回登录</a>
+        {{ t('register.haveAccount') }}
+        <a href="javascript:void(0)" @click="emit('go-login')">{{ t('register.backToLogin') }}</a>
       </p>
     </div>
   </main>

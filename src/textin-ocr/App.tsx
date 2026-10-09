@@ -1,38 +1,42 @@
 import { useState } from 'react'
 import { Card, ConfigProvider, Layout, Space, Typography } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
+import enUS from 'antd/locale/en_US'
+import thTH from 'antd/locale/th_TH'
+import 'dayjs/locale/th'
 import ExtractForm from './components/ExtractForm'
 import ResultPanel from './components/ResultPanel'
 import HistoryList from './components/HistoryList'
+import { useI18n } from './i18n'
 import type { ExtractResponse } from './types/ocr'
 
 const { Header, Content } = Layout
 const { Title } = Typography
 
 export default function App() {
+  const { t, locale } = useI18n()
   const [current, setCurrent] = useState<ExtractResponse | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={locale === 'th' ? thTH : enUS}>
       <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
         <Header style={{ background: '#001529', display: 'flex', alignItems: 'center' }}>
           <Title level={3} style={{ color: '#fff', margin: 0 }}>
-            SaiFlow OCR — 智能抽取
+            {t('app.headerTitle')}
           </Title>
         </Header>
         <Content style={{ padding: 24 }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Card title="1. 上传 / 提交">
+            <Card title={t('app.cardUpload')}>
               <ExtractForm
                 onSuccess={(r) => setCurrent(r)}
                 onHistoryRefresh={() => setRefreshKey((k) => k + 1)}
               />
             </Card>
-            <Card title="2. 抽取结果">
+            <Card title={t('app.cardResult')}>
               <ResultPanel record={current} />
             </Card>
-            <Card title="3. 历史记录">
+            <Card title={t('app.cardHistory')}>
               <HistoryList
                 refreshKey={refreshKey}
                 onSelect={(r) =>

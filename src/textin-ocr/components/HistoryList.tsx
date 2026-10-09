@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button, Empty, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { getExtraction, listExtractions } from '../api/ocr'
+import { useI18n } from '../i18n'
 import type { ExtractedField, ExtractionListItem } from '../types/ocr'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function HistoryList({ refreshKey, onSelect }: Props) {
+  const { t, locale } = useI18n()
   const [items, setItems] = useState<ExtractionListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -28,7 +30,7 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
       setItems(list)
     } catch (e: unknown) {
       const err = e as { message?: string }
-      message.error(`加载历史失败：${err.message ?? '未知错误'}`)
+      message.error(t('history.loadFail', { msg: err.message ?? t('common.unknownError') }))
     } finally {
       setLoading(false)
     }
@@ -60,7 +62,7 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
       })
     } catch (e: unknown) {
       const err = e as { message?: string }
-      message.error(`读取失败：${err.message ?? '未知错误'}`)
+      message.error(t('history.viewFail', { msg: err.message ?? t('common.unknownError') }))
     } finally {
       setLoadingId(null)
     }
@@ -74,7 +76,7 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
       render: (v: string) => v.slice(0, 8) + '…',
     },
     {
-      title: '类型',
+      title: t('history.colType'),
       dataIndex: 'source_type',
       width: 80,
       render: (v: string) => (
@@ -82,33 +84,34 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
       ),
     },
     {
-      title: '来源',
+      title: t('history.colSource'),
       dataIndex: 'source_ref',
       ellipsis: true,
     },
     {
-      title: '页数',
+      title: t('history.colPages'),
       dataIndex: 'page_count',
       width: 70,
     },
     {
-      title: '项数',
+      title: t('history.colItems'),
       dataIndex: 'item_count',
       width: 80,
     },
     {
-      title: '字段数',
+      title: t('history.colFields'),
       dataIndex: 'field_count',
       width: 90,
     },
     {
-      title: '创建时间',
+      title: t('history.colCreatedAt'),
       dataIndex: 'created_at',
       width: 180,
-      render: (v: string) => new Date(v).toLocaleString(),
+      render: (v: string) =>
+        new Date(v).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US'),
     },
     {
-      title: '操作',
+      title: t('history.colAction'),
       width: 100,
       render: (_: unknown, row: ExtractionListItem) => (
         <Button
@@ -116,14 +119,14 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
           loading={loadingId === row.extraction_id}
           onClick={() => view(row.extraction_id)}
         >
-          查看
+          {t('history.view')}
         </Button>
       ),
     },
   ]
 
   if (items.length === 0 && !loading) {
-    return <Empty description="暂无抽取记录" />
+    return <Empty description={t('history.empty')} />
   }
 
   return (

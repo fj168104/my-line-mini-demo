@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { t } from '../../i18n'
 import type {
   ApiEnvelope,
   ApiError,
@@ -76,7 +77,7 @@ function _unwrapError(e: unknown): ApiError {
   if (envelope && typeof envelope === 'object' && 'msg' in envelope) {
     return {
       code: envelope.code ?? err.response?.status ?? 'unknown',
-      message: envelope.msg || err.message || '请求失败',
+      message: envelope.msg || err.message || t('api.requestFailed'),
       http_status: err.response?.status,
     }
   }
@@ -91,11 +92,11 @@ function _unwrapError(e: unknown): ApiError {
 }
 
 function _unwrap<T>(envelope: ApiEnvelope<T> | undefined): T {
-  if (!envelope) throw _unwrapError(new Error('空响应'))
+  if (!envelope) throw _unwrapError(new Error(t('api.emptyResponse')))
   if (envelope.code < 200 || envelope.code >= 300) {
     throw {
       code: envelope.code,
-      message: envelope.msg || `业务错误 (code=${envelope.code})`,
+      message: envelope.msg || t('api.bizError', { code: envelope.code }),
     } satisfies ApiError
   }
   return envelope.data as T

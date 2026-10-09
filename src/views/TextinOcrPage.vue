@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useT } from '../i18nVue';
+import LangSwitch from '../components/LangSwitch.vue';
+
+const { t } = useT();
 
 const emit = defineEmits<{
   (e: 'back'): void;
@@ -30,10 +34,11 @@ onBeforeUnmount(() => {
 <template>
   <main class="page">
     <header class="topbar">
-      <button class="ghost" type="button" @click="emit('back')">← 返回</button>
-      <h1>OCR 智能抽取</h1>
+      <button class="ghost" type="button" @click="emit('back')">{{ t('page.back') }}</button>
+      <h1>{{ t('page.textinTitle') }}</h1>
       <span class="spacer" />
     </header>
+    <LangSwitch />
 
     <!-- React 子应用挂到这里；styles.css 通过 #textin-ocr-root 选择器做样式隔离 -->
     <div ref="hostRef" class="react-host" />

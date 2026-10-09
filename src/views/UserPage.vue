@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { getUserInfo, logout, type UserInfo } from '../api';
+import { useT } from '../i18nVue';
+import { getLocale } from '../i18n';
+import LangSwitch from '../components/LangSwitch.vue';
+
+const { t } = useT();
 
 const user = ref<UserInfo | null>(null);
 const loading = ref(true);
@@ -36,12 +41,12 @@ async function handleLogout() {
   }
 }
 
-/** 格式化注册时间 */
+/** 格式化注册时间（按当前语言使用对应区域格式） */
 function formatDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('zh-CN', { hour12: false });
+  return d.toLocaleString(getLocale() === 'th' ? 'th-TH' : 'en-US', { hour12: false });
 }
 
 onMounted(loadUser);
@@ -49,7 +54,8 @@ onMounted(loadUser);
 
 <template>
   <main class="page">
-    <div v-if="loading" class="loading">加载中…</div>
+    <LangSwitch />
+    <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
 
     <div v-else-if="user" class="card">
       <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
@@ -59,26 +65,25 @@ onMounted(loadUser);
 
       <ul class="info-list">
         <li>
-          <span class="label">用户 ID</span>
+          <span class="label">{{ t('user.userId') }}</span>
           <span class="value">{{ user.id }}</span>
         </li>
         <li>
-          <span class="label">注册时间</span>
+          <span class="label">{{ t('user.createdAt') }}</span>
           <span class="value">{{ formatDate(user.created_at) }}</span>
         </li>
       </ul>
 
-      <button class="ocr-btn" @click="emit('go-ocr')">OCR 图片识别</button>
-      <button class="ocr-btn textin" @click="emit('go-textin-ocr')" style="margin-top: 12px">
-        OCR 智能抽取
-      </button>
+      <!-- 临时隐藏 Google Vision OCR 入口，保留代码便于恢复 -->
+      <button v-if="false" class="ocr-btn" @click="emit('go-ocr')">{{ t('user.ocrPhoto') }}</button>
+      <button class="ocr-btn textin" @click="emit('go-textin-ocr')">{{ t('user.ocrSmart') }}</button>
 
       <button class="logout-btn" :disabled="loggingOut" @click="handleLogout">
-        {{ loggingOut ? '退出中…' : '退出登录' }}
+        {{ loggingOut ? t('user.loggingOut') : t('user.logout') }}
       </button>
     </div>
 
-    <p v-else class="error">{{ errorMsg || '获取用户信息失败' }}</p>
+    <p v-else class="error">{{ errorMsg || t('user.loadFailed') }}</p>
   </main>
 </template>
 

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { login } from '../api';
+import { useT } from '../i18nVue';
+import LangSwitch from '../components/LangSwitch.vue';
+
+const { t } = useT();
 
 const account = ref('');
 const password = ref('');
@@ -17,7 +21,7 @@ const emit = defineEmits<{
 
 async function handleSubmit() {
   if (!account.value.trim() || !password.value) {
-    errorMsg.value = '请输入账号和密码';
+    errorMsg.value = t('login.errRequired');
     return;
   }
   loading.value = true;
@@ -26,7 +30,7 @@ async function handleSubmit() {
     await login(account.value.trim(), password.value);
     emit('logged-in');
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : '登录失败';
+    errorMsg.value = err instanceof Error ? err.message : t('login.errFailed');
   } finally {
     loading.value = false;
   }
@@ -35,27 +39,28 @@ async function handleSubmit() {
 
 <template>
   <main class="page">
+    <LangSwitch />
     <div class="card">
-      <h1>用户登录</h1>
-      <p class="subtitle">SaiFlow 用户中心</p>
+      <h1>{{ t('login.title') }}</h1>
+      <p class="subtitle">{{ t('login.subtitle') }}</p>
 
       <form @submit.prevent="handleSubmit">
         <label class="field">
-          <span>账号</span>
+          <span>{{ t('login.account') }}</span>
           <input
             v-model="account"
             type="text"
-            placeholder="用户名或邮箱"
+            :placeholder="t('login.accountPh')"
             autocomplete="username"
           />
         </label>
 
         <label class="field">
-          <span>密码</span>
+          <span>{{ t('login.password') }}</span>
           <input
             v-model="password"
             type="password"
-            placeholder="请输入密码"
+            :placeholder="t('login.passwordPh')"
             autocomplete="current-password"
           />
         </label>
@@ -64,16 +69,16 @@ async function handleSubmit() {
         <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
 
         <button type="submit" :disabled="loading">
-          {{ loading ? '登录中…' : '登录' }}
+          {{ loading ? t('login.submitting') : t('login.submit') }}
         </button>
       </form>
 
       <p class="switch">
-        还没有账号？
-        <a href="javascript:void(0)" @click="emit('go-register')">立即注册</a>
+        {{ t('login.noAccount') }}
+        <a href="javascript:void(0)" @click="emit('go-register')">{{ t('login.registerNow') }}</a>
       </p>
 
-      <p class="hint">默认账号：bob / 密码：Pass1234</p>
+      <p class="hint">{{ t('login.hint') }}</p>
     </div>
   </main>
 </template>
