@@ -8,6 +8,12 @@ events {
 
 http {
     include /etc/nginx/mime.types;
+    # 显式声明 .mjs 为 ES Module 类型：nginx 自带 mime.types 在不同版本里
+    # 对 .mjs 处理不一致，若被识别为 application/octet-stream，浏览器会拒绝
+    # 以 ES module 执行（PDF.js worker 即典型受害者）。
+    types {
+        application/javascript  mjs;
+    }
     default_type application/octet-stream;
     access_log /dev/stdout;
     sendfile on;
