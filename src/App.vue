@@ -7,7 +7,7 @@ import OcrPage from './views/OcrPage.vue';
 import TextinOcrPage from './views/TextinOcrPage.vue';
 import { getUserInfo, getToken } from './api';
 
-// 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / TextIn 智能抽取页
+// 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / OCR 智能抽取页
 type View = 'login' | 'register' | 'user' | 'ocr' | 'textinOcr';
 const view = ref<View>('login');
 const checking = ref(true);

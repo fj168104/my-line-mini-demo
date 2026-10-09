@@ -31,7 +31,7 @@ onBeforeUnmount(() => {
   <main class="page">
     <header class="topbar">
       <button class="ghost" type="button" @click="emit('back')">← 返回</button>
-      <h1>TextIn 智能抽取</h1>
+      <h1>OCR 智能抽取</h1>
       <span class="spacer" />
     </header>
 

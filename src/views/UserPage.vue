@@ -70,7 +70,7 @@ onMounted(loadUser);
 
       <button class="ocr-btn" @click="emit('go-ocr')">OCR 图片识别</button>
       <button class="ocr-btn textin" @click="emit('go-textin-ocr')" style="margin-top: 12px">
-        TextIn 智能抽取
+        OCR 智能抽取
       </button>
 
       <button class="logout-btn" :disabled="loggingOut" @click="handleLogout">
