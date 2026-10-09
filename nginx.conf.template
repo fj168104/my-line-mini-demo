@@ -64,6 +64,9 @@ http {
         location ^~ /assets/ {
             try_files $uri =404;
             add_header Cache-Control "public, max-age=3600";
+            # 与下文的 COEP=require-corp 配套：明确告知浏览器这些资源
+            # 允许被同源页面嵌入。
+            add_header Cross-Origin-Resource-Policy "same-origin" always;
         }
 
         location = /index.html {
@@ -73,6 +76,13 @@ http {
         # Vue Router history-mode fallback.
         location / {
             try_files $uri $uri/ /index.html;
+
+            # 启用跨源隔离：PDF.js v4+ worker 用动态 import() 加载，
+            # 没有这两个头会被浏览器拒绝 fetch。
+            # 注意：COEP=require-corp 会要求所有跨源子资源（CDN 字体/图片等）
+            # 也带 CORP 头；如有第三方资源失败，可改为 credentialless。
+            add_header Cross-Origin-Opener-Policy "same-origin" always;
+            add_header Cross-Origin-Embedder-Policy "require-corp" always;
         }
     }
 }
