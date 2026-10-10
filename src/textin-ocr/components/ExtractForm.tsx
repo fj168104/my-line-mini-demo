@@ -14,6 +14,7 @@ import {
 import type { UploadFile } from 'antd'
 import { InboxOutlined } from '@ant-design/icons'
 import { extractOCR, type ExtractParams } from '../api/ocr'
+import { useI18n } from '../i18n'
 import type { ExtractResponse } from '../types/ocr'
 import FilePreview from './FilePreview'
 
@@ -22,13 +23,13 @@ interface Props {
   onHistoryRefresh: () => void
 }
 
-const PARSE_MODES = [
-  { value: 'scan', label: 'scan（精准识别）' },
-  { value: 'layout', label: 'layout（版面分析）' },
-  { value: 'article', label: 'article（文章模式）' },
-]
-
 export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
+  const { t } = useI18n()
+  const PARSE_MODES = [
+    { value: 'scan', label: t('form.modeScan') },
+    { value: 'layout', label: t('form.modeLayout') },
+    { value: 'article', label: t('form.modeArticle') },
+  ]
   const [tab, setTab] = useState<'file' | 'url'>('file')
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [urlValue, setUrlValue] = useState('')
@@ -43,11 +44,11 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
 
   const submit = async () => {
     if (tab === 'file' && fileList.length === 0) {
-      message.warning('请先选择文件')
+      message.warning(t('form.warnSelectFile'))
       return
     }
     if (tab === 'url' && !urlValue.trim()) {
-      message.warning('请输入 URL')
+      message.warning(t('form.warnInputUrl'))
       return
     }
     setLoading(true)
@@ -61,14 +62,14 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
           ? { source_type: 'file' as const, file: fileList[0].originFileObj as File, params: merged }
           : { source_type: 'url' as const, url: urlValue.trim(), params: merged }
       const result = await extractOCR(args)
-      message.success(`抽取完成：extraction_id=${result.extraction_id.slice(0, 8)}…`)
+      message.success(t('form.done', { id: result.extraction_id.slice(0, 8) }))
       onSuccess(result)
       onHistoryRefresh()
       setFileList([])
       setUrlValue('')
     } catch (e: unknown) {
       const err = e as { code?: number | string; message?: string }
-      message.error(`${err.code ?? 'error'}: ${err.message ?? '未知错误'}`)
+      message.error(`${err.code ?? 'error'}: ${err.message ?? t('common.unknownError')}`)
     } finally {
       setLoading(false)
     }
@@ -82,7 +83,7 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
         items={[
           {
             key: 'file',
-            label: '本地上传',
+            label: t('form.tabFile'),
             children: (
               <>
                 <Upload.Dragger
@@ -96,8 +97,8 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
                   <p className="ant-upload-drag-icon">
                     <InboxOutlined />
                   </p>
-                  <p className="ant-upload-text">点击或拖拽文件到此区域</p>
-                  <p className="ant-upload-hint">支持 JPG / PNG / PDF，单文件 ≤ 20MB</p>
+                  <p className="ant-upload-text">{t('form.dropText')}</p>
+                  <p className="ant-upload-hint">{t('form.dropHint')}</p>
                 </Upload.Dragger>
                 {fileList.length > 0 && fileList[0].originFileObj && (
                   <div style={{ marginTop: 12 }}>
@@ -109,7 +110,7 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
           },
           {
             key: 'url',
-            label: 'URL 输入',
+            label: t('form.tabUrl'),
             children: (
               <Input
                 placeholder="https://example.com/sample.jpg"
@@ -124,7 +125,7 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
       />
 
       <Form layout="inline" size="small">
-        <Form.Item label="解析模式">
+        <Form.Item label={t('form.parseMode')}>
           <Select
             style={{ width: 180 }}
             value={params.parse_mode}
@@ -132,43 +133,43 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
             options={PARSE_MODES}
           />
         </Form.Item>
-        <Form.Item label="表格识别">
+        <Form.Item label={t('form.table')}>
           <Switch
             checked={params.table}
             onChange={(v) => setParams({ ...params, table: v })}
           />
         </Form.Item>
-        <Form.Item label="公式识别">
+        <Form.Item label={t('form.formula')}>
           <Switch
             checked={params.formula}
             onChange={(v) => setParams({ ...params, formula: v })}
           />
         </Form.Item>
-        <Form.Item label="旋转校正">
+        <Form.Item label={t('form.rotate')}>
           <Switch
             checked={params.rotate}
             onChange={(v) => setParams({ ...params, rotate: v })}
           />
         </Form.Item>
-        <Form.Item label="起始页">
+        <Form.Item label={t('form.startPage')}>
           <InputNumber
             min={0}
             value={params.page}
             onChange={(v) => setParams({ ...params, page: v ?? undefined })}
           />
         </Form.Item>
-        <Form.Item label="识别页数">
+        <Form.Item label={t('form.pageCount')}>
           <InputNumber
             min={1}
             value={params.page_count}
             onChange={(v) => setParams({ ...params, page_count: v ?? undefined })}
           />
         </Form.Item>
-        <Form.Item label="我要抽取的字段" tooltip="回车确认；留空则使用启发式提取（准确度较低）">
+        <Form.Item label={t('form.fields')} tooltip={t('form.fieldsTooltip')}>
           <Select
             mode="tags"
             style={{ minWidth: 280 }}
-            placeholder="例如：发票号、金额、日期"
+            placeholder={t('form.fieldsPh')}
             value={fieldNames}
             onChange={(v) => setFieldNames(v ?? [])}
             tokenSeparators={[',', '，', ' ']}
@@ -178,7 +179,7 @@ export default function ExtractForm({ onSuccess, onHistoryRefresh }: Props) {
       </Form>
 
       <Button type="primary" loading={loading} onClick={submit} size="large">
-        开始抽取
+        {t('form.start')}
       </Button>
     </Space>
   )

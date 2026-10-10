@@ -6,6 +6,9 @@ import UserPage from './views/UserPage.vue';
 import OcrPage from './views/OcrPage.vue';
 import TextinOcrPage from './views/TextinOcrPage.vue';
 import { getUserInfo, getToken } from './api';
+import { useT } from './i18nVue';
+
+const { t } = useT();
 
 // 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / OCR 智能抽取页
 type View = 'login' | 'register' | 'user' | 'ocr' | 'textinOcr';
@@ -54,7 +57,7 @@ function goRegister() {
 }
 
 function onRegistered() {
-  loginNotice.value = '注册成功，请登录';
+  loginNotice.value = t('register.success');
   view.value = 'login';
 }
 
@@ -85,7 +88,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="checking" class="boot">加载中…</div>
+  <div v-if="checking" class="boot">{{ t('common.loading') }}</div>
   <TextinOcrPage v-else-if="view === 'textinOcr'" @back="backFromTextinOcr" />
   <OcrPage v-else-if="view === 'ocr'" @back="backFromOcr" />
   <UserPage

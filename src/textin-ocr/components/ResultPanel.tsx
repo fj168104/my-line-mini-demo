@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Descriptions, Empty, Input, Table, Tabs, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { ExtractResponse, ExtractedField, TextInElement, TextInPage } from '../types/ocr'
+import { useI18n } from '../i18n'
 import FilePreview from './FilePreview'
 import { getExtractionFileUrl } from '../api/ocr'
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ResultPanel({ record }: Props) {
+  const { t } = useI18n()
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [customNames, setCustomNames] = useState<Record<number, string>>({})
 
@@ -18,7 +20,7 @@ export default function ResultPanel({ record }: Props) {
     setCustomNames({})
   }, [record?.extraction_id])
   if (!record) {
-    return <Empty description="提交抽取后，结果会显示在这里" />
+    return <Empty description={t('result.empty')} />
   }
 
   const elements = record.full_result?.elements ?? []
@@ -30,23 +32,23 @@ export default function ResultPanel({ record }: Props) {
 
   const fieldColumns: ColumnsType<ExtractedField> = [
     {
-      title: '页',
+      title: t('result.colPage'),
       dataIndex: 'page_number',
       width: 60,
       render: (v: number) => (v === 0 ? '—' : v),
     },
     {
-      title: '来源',
+      title: t('result.colSource'),
       dataIndex: 'source',
       width: 100,
       render: (v: string) => {
         const color = v === 'schema' ? 'green' : v === 'table' ? 'purple' : 'cyan'
-        const label = v === 'schema' ? 'schema 精确' : v
+        const label = v === 'schema' ? t('result.schemaExact') : v
         return <Tag color={color}>{label}</Tag>
       },
     },
     {
-      title: '字段名',
+      title: t('result.colField'),
       dataIndex: 'name',
       width: 200,
       render: (v: string, _row: ExtractedField, idx: number) => {
@@ -78,12 +80,12 @@ export default function ResultPanel({ record }: Props) {
           <span
             onClick={() => setEditingIdx(idx)}
             style={{ cursor: 'pointer', color: isCustom ? '#1677ff' : undefined }}
-            title="点击编辑"
+            title={t('result.clickEdit')}
           >
             {current}
             {isCustom && (
               <Tag color="blue" style={{ marginLeft: 6, fontSize: 10 }}>
-                自定义
+                {t('result.custom')}
               </Tag>
             )}
           </span>
@@ -91,7 +93,7 @@ export default function ResultPanel({ record }: Props) {
       },
     },
     {
-      title: '值',
+      title: t('result.colValue'),
       dataIndex: 'value',
       ellipsis: true,
       render: (v: string) => (
@@ -116,12 +118,12 @@ export default function ResultPanel({ record }: Props) {
             ),
           },
           { key: 'ref', label: 'source_ref', children: record.source_ref, span: 2 },
-          { key: 'pages', label: '页数', children: record.summary.page_count },
-          { key: 'items', label: '识别元素数', children: record.summary.item_count },
-          { key: 'fields', label: '抽取字段数', children: record.summary.field_count },
+          { key: 'pages', label: t('result.pages'), children: record.summary.page_count },
+          { key: 'items', label: t('result.items'), children: record.summary.item_count },
+          { key: 'fields', label: t('result.fields'), children: record.summary.field_count },
           {
             key: 'dur',
-            label: '耗时 (ms)',
+            label: t('result.duration'),
             children: record.summary.duration_ms ?? '—',
           },
         ]}
@@ -138,9 +140,9 @@ export default function ResultPanel({ record }: Props) {
         items={[
           {
             key: 'fields',
-            label: `字段（${fields.length}）`,
+            label: t('result.tabFields', { n: fields.length }),
             children: fields.length === 0 ? (
-              <Empty description="本次抽取未匹配到字段名/值对" />
+              <Empty description={t('result.emptyFields')} />
             ) : (
               <Table<ExtractedField>
                 rowKey={(_, idx) => String(idx)}
@@ -170,14 +172,14 @@ export default function ResultPanel({ record }: Props) {
                 {markdown}
               </pre>
             ) : (
-              <Empty description="无 markdown 输出" />
+              <Empty description={t('result.emptyMd')} />
             ),
           },
           {
             key: 'elements',
-            label: `识别元素（${elements.length}）`,
+            label: t('result.tabElements', { n: elements.length }),
             children: elements.length === 0 ? (
-              <Empty description="无识别元素" />
+              <Empty description={t('result.emptyElements')} />
             ) : (
               <div style={{ maxHeight: 400, overflow: 'auto' }}>
                 {elements.map((el: TextInElement, idx: number) => (
@@ -190,10 +192,10 @@ export default function ResultPanel({ record }: Props) {
                   >
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>
                       <Tag color="default">{el.type ?? '?'}</Tag>
-                      第 {el.page_number ?? '?'} 页 · #{idx + 1}
+                      {t('result.pageOf', { n: el.page_number ?? '?' })} · #{idx + 1}
                     </div>
                     <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {el.text || <em style={{ color: '#bbb' }}>（无文本，如纯图像元素）</em>}
+                      {el.text || <em style={{ color: '#bbb' }}>{t('result.noText')}</em>}
                     </div>
                   </div>
                 ))}
@@ -202,14 +204,14 @@ export default function ResultPanel({ record }: Props) {
           },
           {
             key: 'pages',
-            label: `页面（${pages.length}）`,
+            label: t('result.tabPages', { n: pages.length }),
             children: pages.length === 0 ? (
-              <Empty description="无分页数据" />
+              <Empty description={t('result.emptyPages')} />
             ) : (
               <div style={{ maxHeight: 400, overflow: 'auto' }}>
                 {pages.map((p: TextInPage, idx: number) => (
                   <div key={idx} style={{ padding: 8 }}>
-                    第 {p.page_number ?? idx} 页
+                    {t('result.pageOf', { n: p.page_number ?? idx })}
                   </div>
                 ))}
               </div>
@@ -217,7 +219,7 @@ export default function ResultPanel({ record }: Props) {
           },
           {
             key: 'raw',
-            label: '完整 JSON',
+            label: t('result.tabRaw'),
             children: (
               <pre
                 style={{
