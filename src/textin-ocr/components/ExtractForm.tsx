@@ -32,8 +32,8 @@ interface Props {
   mode?: TextinOcrMode
 }
 
-const POLL_INTERVAL_MS = 2500
-const POLL_MAX_ATTEMPTS = 120 // ~5 minutes
+const POLL_INTERVAL_MS = 3000
+const POLL_MAX_ATTEMPTS = 20 // 最多轮询 20 次,约 60 秒
 
 export default function ExtractForm({ onSuccess, onHistoryRefresh, mode = 'sync' }: Props) {
   const { t } = useI18n()
