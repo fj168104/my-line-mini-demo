@@ -42,8 +42,8 @@ async function loginWithLine() {
       redirectToLineLogin(); // 用户显式点击后才跳转 LINE OAuth
       return;
     }
-    // LIFF 不可用（未配置/初始化失败）——提示用开发登录
-    errorMsg.value = t('err.auth.line_not_configured');
+    // init 失败（网络等）可重试；完全未配置 LIFF 则提示不可用
+    errorMsg.value = t(state.initFailed ? 'err.auth.line_init_failed' : 'err.auth.line_not_configured');
   } catch (e) {
     errorMsg.value = e instanceof ApiError ? messageText(e.messageKey) : t('login.failed');
   } finally {

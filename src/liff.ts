@@ -10,6 +10,8 @@ export interface LiffState {
   idToken: string | null;
   /** LIFF 初始化成功但尚未登录：仅此时允许点击跳转 LINE 登录 */
   loginAvailable: boolean;
+  /** 配置了 VITE_LIFF_ID 但 liff.init 失败（如 LINE CDN 超时）：可重试 */
+  initFailed: boolean;
 }
 
 let initPromise: Promise<LiffState> | null = null;
@@ -19,18 +21,20 @@ export function initLiff(): Promise<LiffState> {
     initPromise = (async () => {
       const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
       if (!liffId) {
-        return { isInLine: false, idToken: null, loginAvailable: false };
+        return { isInLine: false, idToken: null, loginAvailable: false, initFailed: false };
       }
       try {
         await liff.init({ liffId });
         if (!liff.isLoggedIn()) {
           // 不自动跳转：桌面浏览器会因此被打断，登录页应保留开发兜底入口
-          return { isInLine: true, idToken: null, loginAvailable: true };
+          return { isInLine: true, idToken: null, loginAvailable: true, initFailed: false };
         }
         const idToken = liff.getIDToken();
-        return { isInLine: true, idToken: idToken || null, loginAvailable: false };
+        return { isInLine: true, idToken: idToken || null, loginAvailable: false, initFailed: false };
       } catch {
-        return { isInLine: false, idToken: null, loginAvailable: false };
+        // 失败（如 LINE CDN 超时）不缓存，下次点击自动重试
+        initPromise = null;
+        return { isInLine: false, idToken: null, loginAvailable: false, initFailed: true };
       }
     })();
   }
