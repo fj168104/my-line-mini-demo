@@ -25,12 +25,19 @@ export function initLiff(): Promise<LiffState> {
       }
       try {
         await liff.init({ liffId });
-        if (!liff.isLoggedIn()) {
-          // 不自动跳转：桌面浏览器会因此被打断，登录页应保留开发兜底入口
+        if (liff.isLoggedIn()) {
+          const idToken = liff.getIDToken();
+          if (idToken) {
+            return { isInLine: true, idToken, loginAvailable: false, initFailed: false };
+          }
+          // 已登录但无 ID token：LIFF scope 未勾 openid（或旧会话缺权限）。
+          // 登出清掉旧会话，让下一次点击重新走授权拿到新 scope，避免死锁。
+          console.warn('[liff] logged in without ID token (openid scope missing?) — signing out for re-login');
+          liff.logout();
           return { isInLine: true, idToken: null, loginAvailable: true, initFailed: false };
         }
-        const idToken = liff.getIDToken();
-        return { isInLine: true, idToken: idToken || null, loginAvailable: false, initFailed: false };
+        // 不自动跳转：桌面浏览器会因此被打断，登录页应保留开发兜底入口
+        return { isInLine: true, idToken: null, loginAvailable: true, initFailed: false };
       } catch {
         // 失败（如 LINE CDN 超时）不缓存，下次点击自动重试
         initPromise = null;
