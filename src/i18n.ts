@@ -56,6 +56,7 @@ const en: Dict = {
   // 通用
   'common.loading': 'Loading…',
   'common.unknownError': 'Unknown error',
+  'common.cancel': 'Cancel',
 
   // 登录页
   'login.title': 'User Login',
@@ -99,6 +100,7 @@ const en: Dict = {
   'user.createdAt': 'Registered at',
   'user.ocrPhoto': 'OCR Image Recognition',
   'user.ocrSmart': 'OCR Smart Extraction',
+  'user.ocrSmartAsync': 'OCR Async Extraction',
   'user.logout': 'Sign out',
   'user.loggingOut': 'Signing out…',
   'user.loadFailed': 'Failed to load user info',
@@ -106,10 +108,13 @@ const en: Dict = {
   // Vue 页面骨架
   'page.back': '← Back',
   'page.textinTitle': 'OCR Smart Extraction',
+  'page.textinAsyncTitle': 'OCR Async Extraction',
 
   // React 子应用骨架
   'app.headerTitle': 'SaiFlow OCR — Smart Extraction',
+  'app.headerTitleAsync': 'SaiFlow OCR — Async Extraction',
   'app.cardUpload': '1. Upload / Submit',
+  'app.cardUploadAsync': '1. Submit (async)',
   'app.cardResult': '2. Extraction Result',
   'app.cardHistory': '3. History',
 
@@ -132,9 +137,16 @@ const en: Dict = {
     'Press Enter to confirm; leave empty for heuristic extraction (less accurate)',
   'form.fieldsPh': 'e.g. invoice no., amount, date',
   'form.start': 'Start extraction',
+  'form.startAsync': 'Submit async extraction',
   'form.warnSelectFile': 'Please select a file first',
   'form.warnInputUrl': 'Please enter a URL',
   'form.done': 'Extraction done: extraction_id={id}',
+  'form.asyncSubmitting': 'Submitting async job…',
+  'form.asyncPolling': 'Polling… ({attempt}/{max}, {status})',
+  'form.asyncDone': 'Async extraction done: extraction_id={id}',
+  'form.asyncTimeout': 'Polling timed out, please check History later',
+  'form.asyncFailed': 'Async extraction failed: {msg}',
+  'form.noFieldsAsync': 'Async interface does not support schema extraction',
 
   // 结果面板
   'result.empty': 'Results will appear here after submission',
@@ -169,6 +181,12 @@ const en: Dict = {
   'history.colFields': 'Fields',
   'history.colCreatedAt': 'Created at',
   'history.colAction': 'Actions',
+  'history.colStatus': 'Status',
+  'history.statusPending': 'pending',
+  'history.statusInProgress': 'in progress',
+  'history.statusCompleted': 'completed',
+  'history.statusFailed': 'failed',
+  'history.statusSuccess': 'success',
   'history.view': 'View',
   'history.empty': 'No extraction records yet',
   'history.loadFail': 'Failed to load history: {msg}',
@@ -193,6 +211,7 @@ const th: Dict = {
   // 通用
   'common.loading': 'กำลังโหลด…',
   'common.unknownError': 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ',
+  'common.cancel': 'ยกเลิก',
 
   // 登录页
   'login.title': 'เข้าสู่ระบบ',
@@ -236,6 +255,7 @@ const th: Dict = {
   'user.createdAt': 'วันที่สมัคร',
   'user.ocrPhoto': 'OCR จดจำรูปภาพ',
   'user.ocrSmart': 'OCR สกัดข้อมูลอัจฉริยะ',
+  'user.ocrSmartAsync': 'OCR สกัดข้อมูลแบบ async',
   'user.logout': 'ออกจากระบบ',
   'user.loggingOut': 'กำลังออกจากระบบ…',
   'user.loadFailed': 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ',
@@ -243,10 +263,13 @@ const th: Dict = {
   // Vue 页面骨架
   'page.back': '← ย้อนกลับ',
   'page.textinTitle': 'OCR สกัดข้อมูลอัจฉริยะ',
+  'page.textinAsyncTitle': 'OCR สกัดข้อมูลแบบอะซิงโครนัส',
 
   // React 子应用骨架
   'app.headerTitle': 'SaiFlow OCR — สกัดข้อมูลอัจฉริยะ',
+  'app.headerTitleAsync': 'SaiFlow OCR — สกัดข้อมูลแบบอะซิงโครนัส',
   'app.cardUpload': '1. อัปโหลด / ส่งคำขอ',
+  'app.cardUploadAsync': '1. ส่งคำขอ (async)',
   'app.cardResult': '2. ผลการสกัด',
   'app.cardHistory': '3. ประวัติ',
 
@@ -269,9 +292,16 @@ const th: Dict = {
     'กด Enter เพื่อยืนยัน หากเว้นว่างจะใช้การสกัดแบบฮิวริสติก (แม่นยำน้อยกว่า)',
   'form.fieldsPh': 'เช่น เลขที่ใบกำกับ จำนวนเงิน วันที่',
   'form.start': 'เริ่มการสกัด',
+  'form.startAsync': 'ส่งคำขอ async',
   'form.warnSelectFile': 'กรุณาเลือกไฟล์ก่อน',
   'form.warnInputUrl': 'กรุณากรอก URL',
   'form.done': 'สกัดเสร็จสิ้น: extraction_id={id}',
+  'form.asyncSubmitting': 'กำลังส่งงาน async…',
+  'form.asyncPolling': 'กำลังตรวจสอบสถานะ… ({attempt}/{max}, {status})',
+  'form.asyncDone': 'สกัด async เสร็จสิ้น: extraction_id={id}',
+  'form.asyncTimeout': 'หมดเวลารอ กรุณาดูประวัติภายหลัง',
+  'form.asyncFailed': 'สกัด async ล้มเหลว: {msg}',
+  'form.noFieldsAsync': 'อินเทอร์เฟซ async ไม่รองรับการสกัดแบบ schema',
 
   // 结果面板
   'result.empty': 'ผลลัพธ์จะแสดงที่นี่หลังจากส่งคำขอ',
@@ -306,6 +336,12 @@ const th: Dict = {
   'history.colFields': 'ฟิลด์',
   'history.colCreatedAt': 'วันที่สร้าง',
   'history.colAction': 'จัดการ',
+  'history.colStatus': 'สถานะ',
+  'history.statusPending': 'รอดำเนินการ',
+  'history.statusInProgress': 'กำลังดำเนินการ',
+  'history.statusCompleted': 'เสร็จสิ้น',
+  'history.statusFailed': 'ล้มเหลว',
+  'history.statusSuccess': 'สำเร็จ',
   'history.view': 'ดู',
   'history.empty': 'ยังไม่มีรายการสกัด',
   'history.loadFail': 'โหลดประวัติไม่สำเร็จ: {msg}',

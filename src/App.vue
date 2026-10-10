@@ -10,8 +10,8 @@ import { useT } from './i18nVue';
 
 const { t } = useT();
 
-// 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / OCR 智能抽取页
-type View = 'login' | 'register' | 'user' | 'ocr' | 'textinOcr';
+// 当前视图：登录页 / 注册页 / 用户信息页 / Google Vision OCR 页 / OCR 智能抽取页 / 异步抽取页
+type View = 'login' | 'register' | 'user' | 'ocr' | 'textinOcr' | 'textinOcrAsync';
 const view = ref<View>('login');
 const checking = ref(true);
 // 注册成功后回到登录页的提示
@@ -77,6 +77,14 @@ function backFromTextinOcr() {
   view.value = 'user';
 }
 
+function goTextinOcrAsync() {
+  view.value = 'textinOcrAsync';
+}
+
+function backFromTextinOcrAsync() {
+  view.value = 'user';
+}
+
 onMounted(() => {
   checkAuth();
   window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
@@ -90,12 +98,14 @@ onBeforeUnmount(() => {
 <template>
   <div v-if="checking" class="boot">{{ t('common.loading') }}</div>
   <TextinOcrPage v-else-if="view === 'textinOcr'" @back="backFromTextinOcr" />
+  <TextinOcrPage v-else-if="view === 'textinOcrAsync'" mode="async" @back="backFromTextinOcrAsync" />
   <OcrPage v-else-if="view === 'ocr'" @back="backFromOcr" />
   <UserPage
     v-else-if="view === 'user'"
     @logged-out="onLoggedOut"
     @go-ocr="goOcr"
     @go-textin-ocr="goTextinOcr"
+    @go-textin-ocr-async="goTextinOcrAsync"
   />
   <RegisterPage
     v-else-if="view === 'register'"

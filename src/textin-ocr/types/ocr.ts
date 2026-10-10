@@ -2,6 +2,19 @@
 
 export type SourceType = 'file' | 'url'
 
+/** 后端落盘记录状态：
+ *  - success: 同步抽取完成
+ *  - pending / in_progress: 异步任务未完成
+ *  - completed: 异步任务完成（终态）
+ *  - failed: 异步任务失败（终态）
+ */
+export type ExtractionStatus =
+  | 'success'
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+
 export interface ExtractSummary {
   page_count: number
   item_count: number
@@ -33,7 +46,7 @@ export interface ExtractionListItem {
   page_count: number
   item_count: number
   field_count: number
-  status: 'success'
+  status: ExtractionStatus
 }
 
 export interface ExtractionRecord {
@@ -44,6 +57,23 @@ export interface ExtractionRecord {
   params: Record<string, unknown>
   textin_response: TextInResponse
   fields: ExtractedField[]
+  status: ExtractionStatus
+  async_job_id: string | null
+}
+
+/** POST /api/v1/ocr/async/extract 的成功响应。 */
+export interface AsyncSubmitResponse {
+  extraction_id: string
+  job_id: string
+  status: 'pending'
+}
+
+/** GET /api/v1/ocr/async/extractions/{id}/status 的成功响应。
+ *  record 仅在 status === 'completed' 时填充。 */
+export interface AsyncStatusResponse {
+  status: ExtractionStatus
+  record?: ExtractionRecord
+  message?: string
 }
 
 /* TextIn xparse/parse/sync 响应（已被后端把 data.* 提升到顶层） */

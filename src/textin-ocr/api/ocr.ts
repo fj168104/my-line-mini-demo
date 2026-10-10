@@ -3,6 +3,8 @@ import { t } from '../../i18n'
 import type {
   ApiEnvelope,
   ApiError,
+  AsyncStatusResponse,
+  AsyncSubmitResponse,
   ExtractionListItem,
   ExtractionRecord,
   ExtractResponse,
@@ -155,4 +157,49 @@ export async function getExtraction(id: string): Promise<ExtractionRecord> {
 export function getExtractionFileUrl(id: string): string {
   const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE
   return `${base}/extractions/${id}/file`
+}
+
+/** 异步抽取的入参：只支持文件（TextIn 异步端点不支持 file_url 也不支持 schema 抽取）。 */
+export interface SubmitAsyncExtractArgs {
+  file: File
+  params?: Omit<ExtractParams, 'field_names'>
+}
+
+export async function submitAsyncExtract(
+  args: SubmitAsyncExtractArgs,
+): Promise<AsyncSubmitResponse> {
+  const form = new FormData()
+  form.append('source_type', 'file')
+  const params = args.params || {}
+  if (params.parse_mode) form.append('parse_mode', params.parse_mode)
+  if (params.table !== undefined) form.append('table', String(params.table))
+  if (params.formula !== undefined) form.append('formula', String(params.formula))
+  if (params.rotate !== undefined) form.append('rotate', String(params.rotate))
+  if (params.page !== undefined) form.append('page', String(params.page))
+  if (params.page_count !== undefined)
+    form.append('page_count', String(params.page_count))
+  form.append('file', args.file)
+
+  try {
+    const resp = await http.post<ApiEnvelope<AsyncSubmitResponse>>(
+      '/async/extract',
+      form,
+    )
+    return _unwrap(resp.data)
+  } catch (e) {
+    throw _unwrapError(e)
+  }
+}
+
+export async function pollAsyncStatus(
+  extraction_id: string,
+): Promise<AsyncStatusResponse> {
+  try {
+    const resp = await http.get<ApiEnvelope<AsyncStatusResponse>>(
+      `/async/extractions/${extraction_id}/status`,
+    )
+    return _unwrap(resp.data)
+  } catch (e) {
+    throw _unwrapError(e)
+  }
 }
