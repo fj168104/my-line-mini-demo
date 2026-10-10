@@ -203,3 +203,21 @@ export async function pollAsyncStatus(
     throw _unwrapError(e)
   }
 }
+
+/** refine 入参：用户挑选的字段名（按服务端能力上限 50）。 */
+export interface RefineArgs {
+  extraction_id: string
+  field_names: string[]
+}
+
+export async function refineOCR(args: RefineArgs): Promise<ExtractionRecord> {
+  try {
+    const resp = await http.post<ApiEnvelope<ExtractionRecord>>(
+      `/extractions/${args.extraction_id}/refine`,
+      { field_names: args.field_names },
+    )
+    return _unwrap(resp.data)
+  } catch (e) {
+    throw _unwrapError(e)
+  }
+}

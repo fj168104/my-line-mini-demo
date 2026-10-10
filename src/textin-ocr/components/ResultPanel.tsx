@@ -1,24 +1,54 @@
-import { useEffect, useState } from 'react'
-import { Descriptions, Empty, Input, Table, Tabs, Tag } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Descriptions,
+  Empty,
+  Input,
+  Modal,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  message,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import type { ExtractResponse, ExtractedField, TextInElement, TextInPage } from '../types/ocr'
+import type {
+  ExtractionRecord,
+  ExtractResponse,
+  ExtractedField,
+  TextInElement,
+  TextInPage,
+} from '../types/ocr'
 import { useI18n } from '../i18n'
 import FilePreview from './FilePreview'
-import { getExtractionFileUrl } from '../api/ocr'
+import { getExtractionFileUrl, refineOCR } from '../api/ocr'
 
 interface Props {
   record: ExtractResponse | null
+  /** refine 成功 → 父组件用刷新后的 record 替换 current */
+  onRefined?: (record: ExtractionRecord) => void
 }
 
-export default function ResultPanel({ record }: Props) {
+export default function ResultPanel({ record, onRefined }: Props) {
   const { t } = useI18n()
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [customNames, setCustomNames] = useState<Record<number, string>>({})
 
+  // refine mode: 每行可选 checkbox + 底部 "Refine selected" 按钮
+  const [refineMode, setRefineMode] = useState(false)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [modalOpen, setModalOpen] = useState(false)
+  const [refining, setRefining] = useState(false)
+
   useEffect(() => {
     setEditingIdx(null)
     setCustomNames({})
+    setRefineMode(false)
+    setSelected(new Set())
   }, [record?.extraction_id])
+
   if (!record) {
     return <Empty description={t('result.empty')} />
   }
@@ -29,8 +59,56 @@ export default function ResultPanel({ record }: Props) {
   const fields = record.fields ?? []
   const previewUrl =
     record.source_type === 'file' ? getExtractionFileUrl(record.extraction_id) : null
+  const canRefine = record.source_type === 'file'
 
-  const fieldColumns: ColumnsType<ExtractedField> = [
+  const selectedNames = useMemo(
+    () => Array.from(selected).map((i) => fields[i]?.name).filter((n): n is string => !!n),
+    [selected, fields],
+  )
+
+  function toggleAll(value: boolean) {
+    if (value) {
+      setSelected(new Set(fields.map((_, i) => i)))
+    } else {
+      setSelected(new Set())
+    }
+  }
+
+  function openConfirm() {
+    if (!selected.size) {
+      Modal.warning({ title: t('result.refine.empty') })
+      return
+    }
+    setModalOpen(true)
+  }
+
+  async function doRefine() {
+    if (!record) return
+    if (selectedNames.length === 0) return
+    if (selectedNames.length > 50) {
+      Modal.warning({ title: t('result.refine.failed', { msg: '>50 fields' }) })
+      return
+    }
+    setRefining(true)
+    try {
+      const updated = await refineOCR({
+        extraction_id: record.extraction_id,
+        field_names: selectedNames,
+      })
+      message.success(t('result.refine.done', { n: selectedNames.length }))
+      setModalOpen(false)
+      setRefineMode(false)
+      setSelected(new Set())
+      onRefined?.(updated)
+    } catch (e) {
+      const err = e as { message?: string }
+      message.error(t('result.refine.failed', { msg: err.message ?? t('common.unknownError') }))
+    } finally {
+      setRefining(false)
+    }
+  }
+
+  const baseColumns: ColumnsType<ExtractedField> = [
     {
       title: t('result.colPage'),
       dataIndex: 'page_number',
@@ -75,6 +153,10 @@ export default function ResultPanel({ record }: Props) {
             />
           )
         }
+        // refine mode: 不要可点击编辑，避免与 checkbox 冲突
+        if (refineMode) {
+          return <span>{current}</span>
+        }
         const isCustom = customNames[idx] !== undefined && customNames[idx] !== v
         return (
           <span
@@ -101,6 +183,35 @@ export default function ResultPanel({ record }: Props) {
       ),
     },
   ]
+
+  const fieldColumns: ColumnsType<ExtractedField> = refineMode
+    ? [
+        {
+          title: (
+            <Checkbox
+              checked={selected.size === fields.length && fields.length > 0}
+              indeterminate={selected.size > 0 && selected.size < fields.length}
+              onChange={(e) => toggleAll(e.target.checked)}
+            />
+          ),
+          width: 40,
+          render: (_: unknown, _row: ExtractedField, idx: number) => (
+            <Checkbox
+              checked={selected.has(idx)}
+              onChange={(e) => {
+                setSelected((prev) => {
+                  const next = new Set(prev)
+                  if (e.target.checked) next.add(idx)
+                  else next.delete(idx)
+                  return next
+                })
+              }}
+            />
+          ),
+        },
+        ...baseColumns,
+      ]
+    : baseColumns
 
   return (
     <>
@@ -141,17 +252,57 @@ export default function ResultPanel({ record }: Props) {
           {
             key: 'fields',
             label: t('result.tabFields', { n: fields.length }),
-            children: fields.length === 0 ? (
-              <Empty description={t('result.emptyFields')} />
-            ) : (
-              <Table<ExtractedField>
-                rowKey={(_, idx) => String(idx)}
-                columns={fieldColumns}
-                dataSource={fields}
-                size="small"
-                pagination={false}
-                scroll={{ y: 400 }}
-              />
+            children: (
+              <>
+                {canRefine && fields.length > 0 && (
+                  <Space style={{ marginBottom: 12 }}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const next = !refineMode
+                        setRefineMode(next)
+                        if (next) setSelected(new Set(fields.map((_, i) => i)))
+                        else setSelected(new Set())
+                      }}
+                    >
+                      {refineMode ? t('result.refine.exit') : t('result.refine.toggle')}
+                    </Button>
+                    {refineMode && (
+                      <>
+                        <Button size="small" onClick={() => toggleAll(true)}>
+                          {t('result.refine.selectAll')}
+                        </Button>
+                        <Button size="small" onClick={() => toggleAll(false)}>
+                          {t('result.refine.deselectAll')}
+                        </Button>
+                        <span style={{ color: '#666' }}>
+                          {t('result.refine.count', { n: selected.size })}
+                        </span>
+                        <Button
+                          type="primary"
+                          size="small"
+                          disabled={selected.size === 0}
+                          onClick={openConfirm}
+                        >
+                          {t('result.refine.confirmTitle', { n: selected.size })}
+                        </Button>
+                      </>
+                    )}
+                  </Space>
+                )}
+                {fields.length === 0 ? (
+                  <Empty description={t('result.emptyFields')} />
+                ) : (
+                  <Table<ExtractedField>
+                    rowKey={(_, idx) => String(idx)}
+                    columns={fieldColumns}
+                    dataSource={fields}
+                    size="small"
+                    pagination={false}
+                    scroll={{ y: 400 }}
+                  />
+                )}
+              </>
             ),
           },
           {
@@ -238,6 +389,33 @@ export default function ResultPanel({ record }: Props) {
           },
         ]}
       />
+
+      <Modal
+        open={modalOpen}
+        title={t('result.refine.confirmTitle', { n: selectedNames.length })}
+        onCancel={() => setModalOpen(false)}
+        onOk={doRefine}
+        confirmLoading={refining}
+        okText={t('result.refine.confirmOk')}
+        cancelText={t('common.cancel')}
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t('result.refine.confirmBody')}
+        />
+        <Space wrap>
+          {selectedNames.map((n) => (
+            <Tag color="blue" key={n}>
+              {n}
+            </Tag>
+          ))}
+        </Space>
+        {refining && (
+          <div style={{ marginTop: 12, color: '#888' }}>{t('result.refine.submitting')}</div>
+        )}
+      </Modal>
     </>
   )
 }

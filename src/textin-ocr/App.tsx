@@ -8,7 +8,28 @@ import ResultPanel from './components/ResultPanel'
 import HistoryList from './components/HistoryList'
 import { useI18n } from './i18n'
 import type { TextinOcrMode } from './mount'
-import type { ExtractResponse } from './types/ocr'
+import type { ExtractionRecord, ExtractResponse, ExtractSummary } from './types/ocr'
+
+function recordToResponse(rec: ExtractionRecord): ExtractResponse {
+  const textin = rec.textin_response || {}
+  const metadata = (textin.metadata || {}) as { page_count?: number }
+  const pages = (textin.pages || []) as unknown[]
+  const elements = (textin.elements || []) as unknown[]
+  const summary: ExtractSummary = {
+    page_count: metadata.page_count ?? pages.length ?? 1,
+    item_count: elements.length,
+    duration_ms: null,
+    field_count: rec.fields.length,
+  }
+  return {
+    extraction_id: rec.extraction_id,
+    source_type: rec.source_type,
+    source_ref: rec.source_ref,
+    summary,
+    full_result: textin as ExtractResponse['full_result'],
+    fields: rec.fields,
+  }
+}
 
 const { Header, Content } = Layout
 const { Title } = Typography
@@ -40,7 +61,10 @@ export default function App({ mode = 'sync' }: Props) {
               />
             </Card>
             <Card title={t('app.cardResult')}>
-              <ResultPanel record={current} />
+              <ResultPanel
+                record={current}
+                onRefined={(r) => setCurrent(recordToResponse(r))}
+              />
             </Card>
             <Card title={t('app.cardHistory')}>
               <HistoryList
