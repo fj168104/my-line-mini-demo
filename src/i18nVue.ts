@@ -6,21 +6,26 @@ import { customRef } from 'vue';
 import {
   getLocale,
   setLocale,
+  subscribeLocale,
   t as tRaw,
   type Locale,
   type Params,
 } from './i18n';
 
-export const locale = customRef<Locale>((track, trigger) => ({
-  get() {
-    track();
-    return getLocale();
-  },
-  set(v: Locale) {
-    setLocale(v);
-    trigger();
-  },
-}));
+// 直接调 i18n.setLocale（如 MyPage 的语言切换）也要触发 Vue 重渲染，
+// 因此把 customRef 的 trigger 挂进 i18n 的监听器
+export const locale = customRef<Locale>((track, trigger) => {
+  subscribeLocale(trigger);
+  return {
+    get() {
+      track();
+      return getLocale();
+    },
+    set(v: Locale) {
+      setLocale(v);
+    },
+  };
+});
 
 /** 在组件中使用：const { t } = useT(); 模板里 {{ t('login.title') }} */
 export function useT(): {
