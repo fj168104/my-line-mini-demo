@@ -3,7 +3,7 @@ import { Button, Empty, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { getExtraction, listExtractions } from '../api/ocr'
 import { useI18n } from '../i18n'
-import type { ExtractedField, ExtractionListItem } from '../types/ocr'
+import type { ExtractedField, ExtractionListItem, ExtractionStatus } from '../types/ocr'
 
 interface Props {
   refreshKey: number
@@ -15,6 +15,37 @@ interface Props {
     full_result: unknown
     fields: ExtractedField[]
   }) => void
+}
+
+const STATUS_POLL_INTERVAL_MS = 5000
+
+function statusTagColor(status: ExtractionStatus): string {
+  switch (status) {
+    case 'success':
+    case 'completed':
+      return 'green'
+    case 'pending':
+      return 'gold'
+    case 'in_progress':
+      return 'blue'
+    case 'failed':
+      return 'red'
+  }
+}
+
+function statusLabel(t: (k: string) => string, status: ExtractionStatus): string {
+  switch (status) {
+    case 'success':
+      return t('history.statusSuccess')
+    case 'pending':
+      return t('history.statusPending')
+    case 'in_progress':
+      return t('history.statusInProgress')
+    case 'completed':
+      return t('history.statusCompleted')
+    case 'failed':
+      return t('history.statusFailed')
+  }
 }
 
 export default function HistoryList({ refreshKey, onSelect }: Props) {
@@ -39,6 +70,17 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
   useEffect(() => {
     load()
   }, [refreshKey])
+
+  // Auto-refresh while any record is still pending / in_progress (so badges update without user action).
+  useEffect(() => {
+    const hasInflight = items.some(
+      (i) => i.status === 'pending' || i.status === 'in_progress',
+    )
+    if (!hasInflight) return
+    const timer = window.setInterval(load, STATUS_POLL_INTERVAL_MS)
+    return () => window.clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items])
 
   const view = async (id: string) => {
     setLoadingId(id)
@@ -72,13 +114,13 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
     {
       title: 'extraction_id',
       dataIndex: 'extraction_id',
-      width: 140,
+      width: 110,
       render: (v: string) => v.slice(0, 8) + '…',
     },
     {
       title: t('history.colType'),
       dataIndex: 'source_type',
-      width: 80,
+      width: 70,
       render: (v: string) => (
         <Tag color={v === 'file' ? 'blue' : 'green'}>{v}</Tag>
       ),
@@ -89,30 +131,38 @@ export default function HistoryList({ refreshKey, onSelect }: Props) {
       ellipsis: true,
     },
     {
+      title: t('history.colStatus'),
+      dataIndex: 'status',
+      width: 110,
+      render: (v: ExtractionStatus) => (
+        <Tag color={statusTagColor(v)}>{statusLabel(t, v)}</Tag>
+      ),
+    },
+    {
       title: t('history.colPages'),
       dataIndex: 'page_count',
-      width: 70,
+      width: 60,
     },
     {
       title: t('history.colItems'),
       dataIndex: 'item_count',
-      width: 80,
+      width: 70,
     },
     {
       title: t('history.colFields'),
       dataIndex: 'field_count',
-      width: 90,
+      width: 80,
     },
     {
       title: t('history.colCreatedAt'),
       dataIndex: 'created_at',
-      width: 180,
+      width: 170,
       render: (v: string) =>
         new Date(v).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US'),
     },
     {
       title: t('history.colAction'),
-      width: 100,
+      width: 80,
       render: (_: unknown, row: ExtractionListItem) => (
         <Button
           type="link"

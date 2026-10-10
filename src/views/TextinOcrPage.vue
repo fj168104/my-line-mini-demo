@@ -5,6 +5,11 @@ import LangSwitch from '../components/LangSwitch.vue';
 
 const { t } = useT();
 
+const props = withDefaults(
+  defineProps<{ mode?: 'sync' | 'async' }>(),
+  { mode: 'sync' },
+);
+
 const emit = defineEmits<{
   (e: 'back'): void;
 }>();
@@ -21,7 +26,7 @@ onMounted(async () => {
   // 动态 import：仅在打开 TextIn OCR 视图时才加载 React + Antd + pdfjs ~500 KB。
   const mod = await import('../textin-ocr/mount');
   if (hostRef.value) {
-    unmount = mod.mountTextinOcr(hostRef.value);
+    unmount = mod.mountTextinOcr(hostRef.value, props.mode);
   }
 });
 
@@ -35,7 +40,7 @@ onBeforeUnmount(() => {
   <main class="page">
     <header class="topbar">
       <button class="ghost" type="button" @click="emit('back')">{{ t('page.back') }}</button>
-      <h1>{{ t('page.textinTitle') }}</h1>
+      <h1>{{ props.mode === 'async' ? t('page.textinAsyncTitle') : t('page.textinTitle') }}</h1>
       <span class="spacer" />
     </header>
     <LangSwitch />

@@ -16,6 +16,7 @@ const emit = defineEmits<{
   (e: 'logged-out'): void;
   (e: 'go-ocr'): void;
   (e: 'go-textin-ocr'): void;
+  (e: 'go-textin-ocr-async'): void;
 }>();
 
 async function loadUser() {
@@ -77,6 +78,7 @@ onMounted(loadUser);
       <!-- 临时隐藏 Google Vision OCR 入口，保留代码便于恢复 -->
       <button v-if="false" class="ocr-btn" @click="emit('go-ocr')">{{ t('user.ocrPhoto') }}</button>
       <button class="ocr-btn textin" @click="emit('go-textin-ocr')">{{ t('user.ocrSmart') }}</button>
+      <button class="ocr-btn textin-async" @click="emit('go-textin-ocr-async')">{{ t('user.ocrSmartAsync') }}</button>
 
       <button class="logout-btn" :disabled="loggingOut" @click="handleLogout">
         {{ loggingOut ? t('user.loggingOut') : t('user.logout') }}
@@ -191,6 +193,15 @@ h1 {
 
 .ocr-btn:hover {
   background: #3a5ce5;
+}
+
+.ocr-btn.textin-async {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  margin-top: 0;
+}
+
+.ocr-btn.textin-async:hover {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
 }
 
 .logout-btn:hover:not(:disabled) {
