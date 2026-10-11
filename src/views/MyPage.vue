@@ -1,15 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { logout } from '../api';
+import { computed, onMounted, ref } from 'vue';
+import { getMyCompanies, logout, type Workspace } from '../api';
 import { getLocale, setLocale, type Locale } from '../i18n';
 import { useT } from '../i18nVue';
-import { signOutLocally, user, workspaces } from '../store';
+import { currentWorkspace, navigate, signOutLocally, user, workspaces } from '../store';
 
 const { t, locale } = useT();
 
 const loggingOut = ref(false);
 
-const enterpriseList = workspaces.value.filter((w) => w.workspace_type === 'ENTERPRISE');
+const enterpriseList = computed(() => workspaces.value.filter((w) => w.workspace_type === 'ENTERPRISE'));
+const personalWorkspace = computed(
+  () => workspaces.value.find((w) => w.workspace_type === 'PERSONAL') ?? null,
+);
+
+const pendingCount = ref(0);
+
+onMounted(async () => {
+  try {
+    const data = await getMyCompanies();
+    pendingCount.value = data.items.filter(
+      (c) => c.status === 'PENDING_VERIFICATION' && c.membership_status === 'ACTIVE',
+    ).length;
+  } catch {
+    /* 公司列表失败不阻塞本页 */
+  }
+});
+
+function isCurrentWs(ws: Workspace): boolean {
+  const c = currentWorkspace.value;
+  return !!c && c.workspace_type === ws.workspace_type && (c.enterprise_id ?? null) === (ws.enterprise_id ?? null);
+}
+
+function switchWorkspace(ws: Workspace) {
+  currentWorkspace.value = ws;
+}
 
 function switchLanguage(l: Locale) {
   setLocale(l);
@@ -63,6 +88,14 @@ async function doLogout() {
         </div>
       </div>
 
+      <!-- 套餐与定价 -->
+      <button class="row-card plans-row" @click="navigate('plans')">
+        <span class="row-label">{{ t('my.plans') }}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#99A1B0" stroke-width="2.2" stroke-linecap="round">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
+
       <!-- 公司 -->
       <div class="company-card">
         <div class="company-head">
@@ -75,17 +108,39 @@ async function doLogout() {
           </div>
           <div class="company-main">
             <div class="company-title">{{ t('my.company') }}</div>
-            <div v-if="enterpriseList.length === 0" class="company-empty">
+            <div v-if="enterpriseList.length === 0 && pendingCount === 0" class="company-empty">
               {{ t('my.companyEmpty') }}
+            </div>
+            <div v-else-if="pendingCount > 0" class="company-pending">
+              {{ t('company.status.PENDING_VERIFICATION') }} · {{ pendingCount }}
             </div>
           </div>
         </div>
-        <div v-for="(ws, i) in enterpriseList" :key="ws.enterprise_id ?? `${ws.enterprise_name}-${i}`" class="company-row">
+
+        <!-- 身份切换：个人 + 已认证企业 -->
+        <div class="identity-label">{{ t('my.identity') }}</div>
+        <button v-if="personalWorkspace" class="company-row clickable" :class="{ current: isCurrentWs(personalWorkspace) }" @click="switchWorkspace(personalWorkspace)">
+          <span>{{ t('home.workspacePersonal') }}</span>
+          <svg v-if="isCurrentWs(personalWorkspace)" class="current-mark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F9E6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </button>
+        <button
+          v-for="(ws, i) in enterpriseList"
+          :key="ws.enterprise_id ?? `${ws.enterprise_name}-${i}`"
+          class="company-row clickable"
+          :class="{ current: isCurrentWs(ws) }"
+          @click="switchWorkspace(ws)"
+        >
           <span>{{ ws.enterprise_name }}</span>
           <em>{{ ws.role }}</em>
-        </div>
-        <button v-if="enterpriseList.length === 0" class="company-cta">
-          {{ t('my.companyApply') }}
+          <svg v-if="isCurrentWs(ws)" class="current-mark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F9E6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </button>
+
+        <button class="company-cta" @click="navigate('company')">
+          {{ t('my.companyManage') }}
         </button>
       </div>
 
@@ -182,6 +237,11 @@ async function doLogout() {
   font-weight: 600;
 }
 
+.plans-row {
+  cursor: pointer;
+  width: 100%;
+}
+
 .lang-switch {
   display: flex;
   background: var(--track);
@@ -242,18 +302,59 @@ async function doLogout() {
   margin-top: 2px;
 }
 
+.company-pending {
+  font-size: 10px;
+  color: var(--processing);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.identity-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
 .company-row {
   display: flex;
+  align-items: center;
+  gap: 8px;
   justify-content: space-between;
   font-size: 11px;
   padding: 8px 2px 0;
   border-top: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+}
+
+.company-row.clickable {
+  padding: 8px 8px;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+  border-radius: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.company-row.clickable:active {
+  background: var(--bg);
+}
+
+.company-row.current {
+  font-weight: 700;
 }
 
 .company-row em {
   font-style: normal;
   color: var(--text-secondary);
   font-weight: 600;
+  margin-left: auto;
+}
+
+.current-mark {
+  flex-shrink: 0;
 }
 
 .company-cta {

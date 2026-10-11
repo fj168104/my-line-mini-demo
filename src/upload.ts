@@ -4,8 +4,12 @@
  */
 import { completeUpload, createUpload, uploadContent, type FileInfo } from './api';
 
-export async function uploadFile(file: File): Promise<FileInfo> {
-  const { file: created, upload_id: uploadId } = await createUpload(file.name, file.size);
+export async function uploadFile(
+  file: File,
+  workspace?: { workspace_type?: string; enterprise_id?: number },
+  purpose: 'OCR_TASK' | 'APPLICATION_MATERIAL' = 'OCR_TASK',
+): Promise<FileInfo> {
+  const { file: created, upload_id: uploadId } = await createUpload(file.name, file.size, workspace, purpose);
   try {
     await uploadContent(uploadId, file, file.type || 'application/octet-stream');
     const { file: ready } = await completeUpload(uploadId);

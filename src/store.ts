@@ -4,12 +4,14 @@
  */
 import { reactive, ref } from 'vue';
 import {
+  fetchQuota,
   fetchSession,
   loginWithDevId,
   loginWithLine,
   onUnauthorized,
   setCsrfToken,
   type AuthPayload,
+  type QuotaWorkspace,
   type User,
   type Workspace,
 } from './api';
@@ -17,6 +19,7 @@ import {
 export const user = ref<User | null>(null);
 export const workspaces = ref<Workspace[]>([]);
 export const booted = ref(false); // 启动检查是否结束（无论成败）
+export const quota = ref<QuotaWorkspace[]>([]); // 各工作空间免费额度（PRD v1.4 §20）
 
 export const currentWorkspace = ref<Workspace | null>(null);
 
@@ -28,6 +31,28 @@ export function applyAuth(payload: AuthPayload): void {
     currentWorkspace.value =
       payload.workspaces.find((w) => w.workspace_type === 'PERSONAL') ?? payload.workspaces[0] ?? null;
   }
+}
+
+/** 拉取配额视图；静默失败（横幅缺省隐藏，不阻塞主流程） */
+export async function refreshQuota(): Promise<void> {
+  try {
+    quota.value = (await fetchQuota()).workspaces;
+  } catch {
+    quota.value = [];
+  }
+}
+
+/** 当前工作空间对应的配额条目 */
+export function quotaForWorkspace(): QuotaWorkspace | null {
+  const ws = currentWorkspace.value;
+  if (!ws || !quota.value.length) return null;
+  return (
+    quota.value.find(
+      (q) =>
+        q.workspace_type === ws.workspace_type &&
+        q.enterprise_id === ws.enterprise_id,
+    ) ?? null
+  );
 }
 
 export async function refreshSession(): Promise<boolean> {
@@ -42,16 +67,19 @@ export async function refreshSession(): Promise<boolean> {
 
 export async function signInWithLine(idToken: string, language: 'th' | 'en'): Promise<void> {
   applyAuth(await loginWithLine(idToken, language));
+  await refreshQuota();
 }
 
 export async function signInWithDevId(devId: string, language: 'th' | 'en'): Promise<void> {
   applyAuth(await loginWithDevId(devId, language));
+  await refreshQuota();
 }
 
 export function signOutLocally(): void {
   user.value = null;
   workspaces.value = [];
   currentWorkspace.value = null;
+  quota.value = [];
   setCsrfToken(null);
 }
 
@@ -59,7 +87,7 @@ export function signOutLocally(): void {
 onUnauthorized(signOutLocally);
 
 export interface Route {
-  name: 'scan' | 'history' | 'my' | 'confirm' | 'settings' | 'processing' | 'result';
+  name: 'scan' | 'history' | 'my' | 'confirm' | 'settings' | 'processing' | 'result' | 'company' | 'plans';
   /** 各子页参数，如 { fileId } / { jobId } */
   params?: Record<string, string>;
 }
@@ -80,4 +108,5 @@ export async function boot(): Promise<void> {
   if (booted.value) return;
   await refreshSession();
   booted.value = true;
+  if (user.value) await refreshQuota();
 }

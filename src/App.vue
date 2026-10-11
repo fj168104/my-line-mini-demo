@@ -13,6 +13,9 @@ import ConfirmPage from './views/ConfirmPage.vue';
 import SettingsPage from './views/SettingsPage.vue';
 import ProcessingPage from './views/ProcessingPage.vue';
 import ResultPage from './views/ResultPage.vue';
+import CompanyPage from './views/CompanyPage.vue';
+import PlansPage from './views/PlansPage.vue';
+import alibabaLogo from './assets/alibaba-logo.png';
 
 const { t } = useT();
 
@@ -89,7 +92,10 @@ const TABS = [
     <div class="splash-tagline">Scan. Verify. Export.</div>
     <div class="splash-spinner" aria-hidden="true" />
     <div class="splash-connecting">{{ t('boot.connecting') }}</div>
-    <div class="splash-powered">{{ t('boot.poweredBy') }}</div>
+    <div class="splash-powered">
+      <span>Powered by</span>
+      <img class="splash-powered-logo" :src="alibabaLogo" alt="Alibaba" />
+    </div>
   </div>
 
   <LoginPage v-else-if="phase === 'login'" :notice="bootError" @logged-in="onLoggedIn" />
@@ -104,6 +110,8 @@ const TABS = [
       <SettingsPage v-else-if="route.name === 'settings'" :file-id="route.params?.fileId ?? ''" />
       <ProcessingPage v-else-if="route.name === 'processing'" :job-id="route.params?.jobId ?? ''" />
       <ResultPage v-else-if="route.name === 'result'" :job-id="route.params?.jobId ?? ''" />
+      <CompanyPage v-else-if="route.name === 'company'" />
+      <PlansPage v-else-if="route.name === 'plans'" />
     </main>
 
     <nav v-if="route.name === 'scan' || route.name === 'history' || route.name === 'my'" class="bottom-nav">
@@ -254,8 +262,19 @@ button {
 .splash-powered {
   position: absolute;
   bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffffff;
   font-size: 10px;
-  opacity: 0.6;
+  color: var(--text-secondary);
+}
+
+.splash-powered-logo {
+  height: 14px;
+  display: block;
 }
 
 @keyframes spin {

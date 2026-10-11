@@ -261,6 +261,70 @@ export interface WorkspacesPayload {
   pending_applications: unknown[];
 }
 
+export interface PlanPrice {
+  monthly_thb: number | null;
+  yearly_thb: number | null;
+  display: string;
+}
+
+export interface Plan {
+  code: string;
+  name: string;
+  price: PlanPrice;
+  quota_pages_per_month: number;
+  seats: number;
+  features: string[];
+  is_default: boolean;
+}
+
+export interface QuotaWorkspace {
+  workspace_type: 'PERSONAL' | 'ENTERPRISE';
+  enterprise_id: number | null;
+  enterprise_name: string | null;
+  plan: {
+    code: string;
+    name: string;
+    is_paid: boolean;
+    free_unit: string;
+    paid_unit: string;
+  };
+  free_tasks: { total: number; remaining: number };
+  paid_pages: { monthly_total: number; remaining: number };
+}
+
+export interface QuotaPayload {
+  workspaces: QuotaWorkspace[];
+}
+
+export interface PlansPayload {
+  currency: string;
+  payment: string;
+  items: Plan[];
+}
+
+export interface CompanyDetail {
+  id: number;
+  code: string;
+  legal_name: string;
+  registration_no: string;
+  contact_phone: string;
+  cert_file_id: string | null;
+  status: 'PENDING_VERIFICATION' | 'VERIFIED' | 'SUSPENDED' | 'DISABLED' | string;
+  created_at?: string | null;
+}
+
+export interface MyCompany extends CompanyDetail {
+  my_role: 'OWNER' | 'ADMIN' | 'MEMBER' | string;
+  membership_status: 'PENDING' | 'ACTIVE' | string;
+}
+
+export interface CompanyInput {
+  legal_name: string;
+  registration_no: string;
+  contact_phone: string;
+  cert_file_id?: string | null;
+}
+
 // ---------- 认证 ----------
 
 export function loginWithLine(idToken: string, language: 'th' | 'en'): Promise<AuthPayload> {
@@ -290,10 +354,11 @@ export function createUpload(
   fileName: string,
   sizeBytes: number,
   workspace?: { workspace_type?: string; enterprise_id?: number },
+  purpose: 'OCR_TASK' | 'APPLICATION_MATERIAL' = 'OCR_TASK',
 ): Promise<{ file: FileInfo; upload_id: string }> {
   return request('/uploads', {
     method: 'POST',
-    json: { file_name: fileName, size_bytes: sizeBytes, purpose: 'OCR_TASK', ...workspace },
+    json: { file_name: fileName, size_bytes: sizeBytes, purpose, ...workspace },
   });
 }
 
@@ -411,4 +476,45 @@ export function getExport(exportId: string): Promise<ExportInfo> {
 
 export function exportDownloadUrl(exportId: string): string {
   return `${API_BASE}/exports/${exportId}/download`;
+}
+
+// ---------- 公司（添加/修改/编号绑定/解绑） ----------
+
+export function createCompany(input: CompanyInput): Promise<{ enterprise: CompanyDetail }> {
+  return request<{ enterprise: CompanyDetail }>('/enterprises', { method: 'POST', json: input });
+}
+
+export function getMyCompanies(): Promise<{ items: MyCompany[] }> {
+  return request<{ items: MyCompany[] }>('/enterprises/mine');
+}
+
+export function updateCompany(
+  enterpriseId: number,
+  input: CompanyInput,
+): Promise<{ enterprise: CompanyDetail }> {
+  return request<{ enterprise: CompanyDetail }>(`/enterprises/${enterpriseId}`, { method: 'PATCH', json: input });
+}
+
+export function bindCompany(code: string): Promise<{ enterprise: CompanyDetail; role: string }> {
+  return request<{ enterprise: CompanyDetail; role: string }>('/enterprises/bind', {
+    method: 'POST',
+    json: { code },
+  });
+}
+
+export function unbindCompany(enterpriseId: number): Promise<{ enterprise_id: number; status: string }> {
+  return request<{ enterprise_id: number; status: string }>(`/enterprises/${enterpriseId}/unbind`, {
+    method: 'POST',
+    json: {},
+  });
+}
+
+// ---------- 套餐与配额（PRD v1.4 §20） ----------
+
+export function fetchPlans(): Promise<PlansPayload> {
+  return request<PlansPayload>('/plans');
+}
+
+export function fetchQuota(): Promise<QuotaPayload> {
+  return request<QuotaPayload>('/me/quota');
 }
