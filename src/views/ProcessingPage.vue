@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { ApiError, cancelJob, getJob, type JobSummary } from '../api';
+import { ApiError, cancelJob, getFile, getJob, type JobSummary } from '../api';
 import { messageText } from '../i18n';
 import { useT } from '../i18nVue';
 import { goTab, navigate } from '../store';
@@ -13,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const job = ref<JobSummary | null>(null);
+const filePageCount = ref<number | null>(null);
 const errorMsg = ref('');
 const cancelling = ref(false);
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -37,6 +38,12 @@ const steps = computed(() => {
 async function poll() {
   try {
     job.value = await getJob(props.jobId);
+    // worker 跑完才写 job.page_count；排队中回退显示文件页数，避免 "All 0 pages"
+    if (job.value.page_count == null && filePageCount.value == null) {
+      getFile(job.value.file_id)
+        .then((r) => (filePageCount.value = r.file.page_count))
+        .catch(() => (filePageCount.value = 0));
+    }
     if (RUNNING.includes(job.value.status)) {
       timer = setTimeout(poll, 2000);
     }
@@ -73,7 +80,7 @@ async function cancel() {
       <div class="status-card" v-if="job">
         <div class="spinner" :class="{ done: !RUNNING.includes(job.status) }" />
         <div class="status-title">{{ t('processing.recognizing') }}</div>
-        <div class="status-sub">{{ job.file_name }} · {{ t('settings.pagesAll', { n: job.page_count }) }}</div>
+        <div class="status-sub">{{ job.file_name }} · {{ t('settings.pagesAll', { n: job.page_count ?? filePageCount ?? 0 }) }}</div>
 
         <div class="steps">
           <div v-for="(step, i) in steps" :key="step.key" class="step">
